@@ -802,12 +802,12 @@ Disassembly of section .text:
   401457:	e8 c4 f7 ff ff       	call   400c20 <exit@plt>
 
 000000000040145c <read_six_numbers>:
-  40145c:	48 83 ec 18          	sub    $0x18,%rsp # 日常分配栈空间
-  401460:	48 89 f2             	mov    %rsi,%rdx # 将第一个参数%rdi赋值给%rdx
+  40145c:	48 83 ec 18          	sub    $0x18,%rsp # 日常分配栈空间24个字节，也就是6个int
+  401460:	48 89 f2             	mov    %rsi,%rdx # 将第二个参数%rsi赋值给%rdx
   401463:	48 8d 4e 04          	lea    0x4(%rsi),%rcx # 这里使用了lea %rcx=(%rsi)+4
   401467:	48 8d 46 14          	lea    0x14(%rsi),%rax # 这里使用了lea %rax=(%rsi)+20
-  40146b:	48 89 44 24 08       	mov    %rax,0x8(%rsp) # 将%rax的值赋值给0x8(%rsp)=(%rsp)+8
-  401470:	48 8d 46 10          	lea    0x10(%rsi),%rax # 这里使用了lea %rax=(%rsi)+16,就是第五个参数的地址？
+  40146b:	48 89 44 24 08       	mov    %rax,0x8(%rsp) # 将%rax的值赋值给0x8(%rsp)=(%rsp)+8的位置
+  401470:	48 8d 46 10          	lea    0x10(%rsi),%rax # 这里使用了lea %rax=(%rsi)+16,就是第五个分配的栈对应的地址
   401474:	48 89 04 24          	mov    %rax,(%rsp) # 将%rax的值赋值给(%rsp)
   401478:	4c 8d 4e 0c          	lea    0xc(%rsi),%r9 # 这里使用了lea %r9=(%rsi)+12
   40147c:	4c 8d 46 08          	lea    0x8(%rsi),%r8 # 这里使用了lea %r8=(%rsi)+8
