@@ -4,7 +4,7 @@
 
 这是部分的`bomb.c`的源代码，但是这里只是涉及了一些函数的调用，具体的函数需要自己前往编译好的bomb通过逆向获得汇编代码再步步解析
 
-这里可以看到先是初始化了炸弹`initialize_bomb`，然后获取输入`input`，将输入作为参数传入`phase_1`，应该是根据这个参数发生了某些事情，因此我们需要弄清楚`phase_1`函数里面究竟发生了什么事情
+这里可以看到先是初始化了炸弹`initialize_bomb`，然后获取输入`input`，将输入作为参数传入`phase_1`，应该是根据这个参数发生了某些事情，因此我们需要弄清楚`phase_X`函数里面究竟发生了什么事情
 
 ```c
     /* Do all sorts of secret stuff that makes the bomb harder to defuse. */
@@ -257,3 +257,134 @@ phase_2(char *input) {
 ```
 
 ## phase_3
+
+这题需要`题1`的`gdb`调试以及对条件跳转知识的熟悉
+
+#### 汇编代码解读
+
+```assembly
+0000000000400f43 <phase_3>: # input in %rdi
+  400f43:	48 83 ec 18          	sub    $0x18,%rsp  
+  400f47:	48 8d 4c 24 0c       	lea    0xc(%rsp),%rcx  # rcx = *(rsp + 12) --> 这是第四个参数
+  400f4c:	48 8d 54 24 08       	lea    0x8(%rsp),%rdx  # rdx = *(rsp + 8) --> 这里是为了作为sscanf的参数，这是第三个参数
+  400f51:	be cf 25 40 00       	mov    $0x4025cf,%esi  # esi = 0x4025cf -->这里其实未知具体是什么，可以使用gdb查看运行时对应的内存获取，获取可知是%d %d,所以需要输入超过两个数字，并且空格隔开
+  400f56:	b8 00 00 00 00       	mov    $0x0,%eax
+  400f5b:	e8 90 fc ff ff       	call   400bf0 <__isoc99_sscanf@plt> # sscanf(rdi, 0x4025cf, rsp + 8, rsp + 12) -->第一个参数是src/也就是input，第二个参数是esi指向的字符串，第三/四个参数就是接受的地方，因此rsp+8存储num1，rsp+12存储num2
+  400f60:	83 f8 01             	cmp    $0x1,%eax # 这里比较一下sscanf的返回值，返回值是读取的个数，也就是需要大于1的个数
+  400f63:	7f 05                	jg     400f6a <phase_3+0x27>
+  400f65:	e8 d0 04 00 00       	call   40143a <explode_bomb>
+  400f6a:	83 7c 24 08 07       	cmpl   $0x7,0x8(%rsp)  # 比较num1和0x7
+  400f6f:	77 3c                	ja     400fad <phase_3+0x6a> # 如果num1大于0x7，跳转到400fad，也就是爆炸，所以num1要小于等于7
+  400f71:	8b 44 24 08          	mov    0x8(%rsp),%eax # eax = num1
+  400f75:	ff 24 c5 70 24 40 00 	jmp    *0x402470(,%rax,8) # 跳转到0x402470 + 8 * num1,根据查询这些的地址发现是下列的地址，编号如下
+  400f7c:	b8 cf 00 00 00       	mov    $0xcf,%eax # 0
+  400f81:	eb 3b                	jmp    400fbe <phase_3+0x7b>
+  400f83:	b8 c3 02 00 00       	mov    $0x2c3,%eax # 2
+  400f88:	eb 34                	jmp    400fbe <phase_3+0x7b>
+  400f8a:	b8 00 01 00 00       	mov    $0x100,%eax # 3
+  400f8f:	eb 2d                	jmp    400fbe <phase_3+0x7b>
+  400f91:	b8 85 01 00 00       	mov    $0x185,%eax # 4
+  400f96:	eb 26                	jmp    400fbe <phase_3+0x7b>
+  400f98:	b8 ce 00 00 00       	mov    $0xce,%eax # 5
+  400f9d:	eb 1f                	jmp    400fbe <phase_3+0x7b>
+  400f9f:	b8 aa 02 00 00       	mov    $0x2aa,%eax # 6
+  400fa4:	eb 18                	jmp    400fbe <phase_3+0x7b>
+  400fa6:	b8 47 01 00 00       	mov    $0x147,%eax # 7
+  400fab:	eb 11                	jmp    400fbe <phase_3+0x7b>
+  400fad:	e8 88 04 00 00       	call   40143a <explode_bomb>
+  400fb2:	b8 00 00 00 00       	mov    $0x0,%eax
+  400fb7:	eb 05                	jmp    400fbe <phase_3+0x7b>
+  400fb9:	b8 37 01 00 00       	mov    $0x137,%eax # 1
+  400fbe:	3b 44 24 0c          	cmp    0xc(%rsp),%eax # 比较num2和eax，eax需要根据num1跳转之后赋值，因此num2和num1的值息息相关，本题一共有0-7共计8个答案
+  400fc2:	74 05                	je     400fc9 <phase_3+0x86> # num2对应上num1跳转的值就不引发爆炸
+  400fc4:	e8 71 04 00 00       	call   40143a <explode_bomb> 
+  400fc9:	48 83 c4 18          	add    $0x18,%rsp
+  400fcd:	c3                   	ret   
+```
+
+#### 转换C语言版本
+
+这题转换C语言比较累，要写好多地址，直接一步到位的C语言版本得了
+
+```c
+phase_3(char * input){
+    sscanf(input,"%d %d",num1,num2);
+    if(num1 > 7){
+        bomb();
+    }
+    switch(num1){
+        case 0: 
+            if(num2 != 0xcf){
+                bomb();
+            }
+            break;
+        case 1: 
+            if(num2 != 0x137){
+                bomb();
+            }
+            break;
+        case 2: 
+            if(num2 != 0x2c3){
+                bomb();
+            }
+            break;
+        case 3: 
+            if(num2 != 0x100){
+                bomb();
+            }
+            break;
+        case 4: 
+            if(num2 != 0x185){
+                bomb();
+            }
+            break;
+        case 5: 
+            if(num2 != 0xcc){
+                bomb();
+            }
+            break;
+        case 6: 
+            if(num2 != 0x200){
+                bomb();
+            }
+            break;
+        case 7: 
+            if(num2 != 0x147){
+                bomb();
+            }
+            break;
+        default:
+            bomb();
+    }
+    return ;
+}
+```
+
+根据这个C语言转换之后可以看出，需要num1和num2之间有对应关系，并且num1的取值是0-7其中一个整数
+
+> 可能的答案有八种，分别是
+>
+> 0 - 0xcf / 207	
+> 
+> 1 - 0x137 / 311 	
+> 
+> 2 - 0x2c3 / 707 	
+> 
+> 3 - 0x100 / 256 	
+> 
+> 4 - 0x185 / 389 
+> 
+> 5 - 0xcc / 204 	
+> 
+> 6 - 0x200 / 512 	
+> 
+> 7 - 0x147 / 327 
+
+#### sscanf的补充
+
+```c
+    //sscanf(rdi, 0x4025cf, rsp + 8, rsp + 12) -->第一个参数是src/也就是input，第二个参数是esi指向的字符串，第三/四个参数就是接受的地方，因此rsp+8存储num1，rsp+12存储num2
+	//sscanf(src,format,...)后面的...是可变参数，指的是接收的位置
+```
+
+## phase_4
