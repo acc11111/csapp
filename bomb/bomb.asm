@@ -460,7 +460,7 @@ Disassembly of section .text:
   401048:	e8 81 ff ff ff       	call   400fce <func4> # 在这里调用函数func4，传入上面的这几个参数
   40104d:	85 c0                	test   %eax,%eax # 这里检查返回值是不是0
   40104f:	75 07                	jne    401058 <phase_4+0x4c> # 如果不是0，就爆炸，也就搞懂了func4需要是返回0
-  401051:	83 7c 24 0c 00       	cmpl   $0x0,0xc(%rsp) # num2也不可以为0
+  401051:	83 7c 24 0c 00       	cmpl   $0x0,0xc(%rsp) # num2也必须0
   401056:	74 05                	je     40105d <phase_4+0x51>
   401058:	e8 dd 03 00 00       	call   40143a <explode_bomb>
   40105d:	48 83 c4 18          	add    $0x18,%rsp
