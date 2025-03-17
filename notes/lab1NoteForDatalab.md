@@ -1,5 +1,3 @@
-
-
 # note for data-lab
 
 ```c
@@ -276,39 +274,38 @@ unsigned floatPower2(int x) {
 
 ## 总结
 
-- 浮点数拆解获取三个区间
+-   浮点数拆解获取三个区间
 
-  ```c
-  unsigned sign = x & 0x80000000;
-  unsigned exp = (x>>23) & 0xff;
-  unsigned E = exp - 127;
-  unsigned frac = x & 0x7fffff;
-  ```
+    ```c
+    unsigned sign = x & 0x80000000;
+    unsigned exp = (x>>23) & 0xff;
+    unsigned E = exp - 127;
+    unsigned frac = x & 0x7fffff;
+    ```
 
-- 标准化条件
+-   标准化条件
 
-  ```c
-  s = !!s // 获取标准化后的数值，也就是只有两种0x1和0x0
-  ```
+    ```c
+    s = !!s // 获取标准化后的数值，也就是只有两种0x1和0x0
+    ```
 
-- 获取区间条件
+-   获取区间条件
 
-  ```c
-  // a <= x <= b
-  // 转换为 x - a >= 0; b - x >= 0;
-  // 一般都是选择>=0因为这样比较好保证是符号为0，否则使用<=0时会出现0时符号位为0，负数时符号位为1的不等情况
-  int expression1 = ((x - a) >> 31) & 1; //这里&1是为了舍弃算术右移补上来的符号位
-  int expression2 = ((b - x) >> 31) & 1; //同上
-  // 如果满足在[a,b]区间之内则有exp1和exp2都是0，此时使用!exp1 & !exp2就是bool值为true
-  ```
+    ```c
+    // a <= x <= b
+    // 转换为 x - a >= 0; b - x >= 0;
+    // 一般都是选择>=0因为这样比较好保证是符号为0，否则使用<=0时会出现0时符号位为0，负数时符号位为1的不等情况
+    int expression1 = ((x - a) >> 31) & 1; //这里&1是为了舍弃算术右移补上来的符号位
+    int expression2 = ((b - x) >> 31) & 1; //同上
+    // 如果满足在[a,b]区间之内则有exp1和exp2都是0，此时使用!exp1 & !exp2就是bool值为true
+    ```
 
-- 切实坑点
+-   切实坑点
 
-  ```c
-  // 有时候使用>>是直接获取了移位之后的值，但是有些时候移位之后是需要重新赋值的，记得注意区分
-  ```
+    ```c
+    // 有时候使用>>是直接获取了移位之后的值，但是有些时候移位之后是需要重新赋值的，记得注意区分
+    ```
 
 ## 坑点
 
-![datalab异常截图1](../img/datalab异常截图1.png)![datalab异常截图2](../img/datalab异常截图2.png)
-
+![datalab异常截图1](./img/datalab异常截图1.png)![datalab异常截图2](./img/datalab异常截图2.png)
