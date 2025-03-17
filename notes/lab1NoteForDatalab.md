@@ -310,5 +310,5 @@ unsigned floatPower2(int x) {
 
 ## 坑点
 
-![datalab异常截图1](./datalab异常截图1.png)![datalab异常截图2](./datalab异常截图2.png)
+![datalab异常截图1](../img/datalab异常截图1.png)![datalab异常截图2](../img/datalab异常截图2.png)
 
