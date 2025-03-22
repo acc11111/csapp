@@ -469,10 +469,10 @@ Disassembly of section .text:
 0000000000401062 <phase_5>:
   401062:	53                   	push   %rbx
   401063:	48 83 ec 20          	sub    $0x20,%rsp
-  401067:	48 89 fb             	mov    %rdi,%rbx
-  40106a:	64 48 8b 04 25 28 00 	mov    %fs:0x28,%rax
+  401067:	48 89 fb             	mov    %rdi,%rbx # 
+  40106a:	64 48 8b 04 25 28 00 	mov    %fs:0x28,%rax # 这两行就是所谓的栈保护机制，可以当作噪音略过，对逻辑无影响
   401071:	00 00 
-  401073:	48 89 44 24 18       	mov    %rax,0x18(%rsp)
+  401073:	48 89 44 24 18       	mov    %rax,0x18(%rsp) 
   401078:	31 c0                	xor    %eax,%eax
   40107a:	e8 9c 02 00 00       	call   40131b <string_length>
   40107f:	83 f8 06             	cmp    $0x6,%eax
