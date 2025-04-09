@@ -902,8 +902,7 @@ Disassembly of section .text:
   40196c:	b8 00 00 00 00       	mov    $0x0,%eax
   401971:	e8 32 fe ff ff       	call   4017a8 <getbuf>
   401976:	89 c2                	mov    %eax,%edx
-  401978:	be 88 31 40 00       	mov    $0x403188,%esi
-  40197d:	bf 01 00 00 00       	mov    $0x1,%edi
+  401978:	be 88 31 40 00       	mov    $0x403188,%esi 
   401982:	b8 00 00 00 00       	mov    $0x0,%eax
   401987:	e8 64 f4 ff ff       	call   400df0 <__printf_chk@plt>
   40198c:	48 83 c4 08          	add    $0x8,%rsp
