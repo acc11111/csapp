@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.jsx": "javascriptreact",
+        "*.asm": "asm-intel-x86-generic",
+        "limits.h": "c"
+    }
+}
